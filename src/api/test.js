@@ -4,7 +4,12 @@ const Promise = require('./promise')
 const promise = new Promise((resolve, reject) => {
     setTimeout(() => {
         //resolve(23323)
-        throw Error("first error")
+        // return new Promise((resolve, reject) => {
+        //     setTimeout(() => {
+        //         resolve(20)
+        //     }, 1000)
+        // })
+        throw Error("custom error")
     }, 1000)
 })
 

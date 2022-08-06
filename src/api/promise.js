@@ -4,14 +4,15 @@ const REJECTED = "REJECTED";
 
 /**
  * 自定义Promise，规范：https://promisesaplus.com/
+ * 
+ * promise使用，异步用遍历，同步用递归
  */
 class Promise {
-
-    /**
-     * 构造时会传递要执行的代码逻辑，其中使用到的resolve和reject回调函数参数是由Promise提供
-     * 
-     * @param {*} executor 
-     */
+  /**
+   * 构造时会传递要执行的代码逻辑，其中使用到的resolve和reject回调函数参数是由Promise提供
+   *
+   * @param {*} executor
+   */
   constructor(executor) {
     // promise状态
     this.status = PENDING;
@@ -26,6 +27,9 @@ class Promise {
 
     // 当前promise解决的回调
     const resolve = (value) => {
+      if (value instanceof Promise) {
+        return value.then(resolve, reject);
+      }
       if (this.status === PENDING) {
         this.status = FULFILLED;
         this.value = value;
@@ -45,7 +49,7 @@ class Promise {
         });
       }
     };
-    
+
     // 调用用户传递进来的executor，内部在执行完成时使用resolve和reject进行回调
     try {
       executor(resolve, reject);
@@ -74,7 +78,13 @@ class Promise {
         // }
         // 注意：这里要通过异步方式使用刚刚创建的wrapPromise
         setTimeout(() => {
-          this.promiseCallbackSafely(true, wrapPromise, onFulfilled, resolve, reject);
+          this.promiseCallbackSafely(
+            true,
+            wrapPromise,
+            onFulfilled,
+            resolve,
+            reject
+          );
         });
       } else if (this.status === REJECTED) {
         // try {
@@ -86,7 +96,13 @@ class Promise {
         //   reject(e);
         // }
         // 注意：这里要通过异步方式使用刚刚创建的wrapPromise
-        this.promiseCallbackSafely(true, wrapPromise, onRejected, resolve, reject);
+        this.promiseCallbackSafely(
+          false,
+          wrapPromise,
+          onRejected,
+          resolve,
+          reject
+        );
       }
       if (this.status === PENDING) {
         this.onResolveCallbacks.push(() => {
@@ -99,7 +115,13 @@ class Promise {
           //     reject(e);
           //   }
           // 注意：这里要通过异步方式使用刚刚创建的wrapPromise
-          this.promiseCallbackSafely(true, wrapPromise, onFulfilled, resolve, reject);
+          this.promiseCallbackSafely(
+            true,
+            wrapPromise,
+            onFulfilled,
+            resolve,
+            reject
+          );
         });
         this.onRejectedCallbacks.push(() => {
           //   try {
@@ -111,7 +133,13 @@ class Promise {
           //     reject(e);
           //   }
           // 注意：这里要通过异步方式使用刚刚创建的wrapPromise
-          this.promiseCallbackSafely(false, wrapPromise, onRejected, resolve, reject);
+          this.promiseCallbackSafely(
+            false,
+            wrapPromise,
+            onRejected,
+            resolve,
+            reject
+          );
         });
       }
     });
@@ -119,10 +147,12 @@ class Promise {
   }
 
   /**
+   * then中返回的结果有两种：一种是promise，另外一种是非promise
+   *
    * 递归解析promise的结果，一直解析到不是promise形式
    *
-   * @param {*} newPromise
-   * @param {*} tmpResult
+   * @param {*} newPromise 当前promise调用then之后应该返回新的promise以支持链式调用
+   * @param {*} tmpResult then中onFulfilled返回的对象，可能是promise
    * @param {*} resolve
    * @param {*} reject
    * @returns
@@ -138,14 +168,12 @@ class Promise {
     ) {
       let called = false;
       try {
-        let then = tmpResult.then;
-        if (typeof then === "function") {
-          then.call(
-            tmpResult,
-            (y) => {
+        if (typeof tmpResult.then === "function") {
+          tmpResult.then(
+            (value) => {
               if (called) return;
               called = true;
-              this.resolvePromise(newPromise, y, resolve, reject);
+              this.resolvePromise(newPromise, value, resolve, reject);
             },
             (reason) => {
               if (called) return;
@@ -154,29 +182,32 @@ class Promise {
             }
           );
         } else {
+          //非promise类型，就直接标记当前解决了
           resolve(tmpResult);
         }
       } catch (e) {
+        // promise类型，但又调用异常
         reject(e);
       }
     } else {
+      //非promise类型，就直接标记当前解决了
       resolve(tmpResult);
     }
   }
 
   /**
    * 在Promise处理（成功|失败）时进行安全方式回调
-   * 
-   * @param {*} success 
-   * @param {*} returnPromise 
-   * @param {*} callback 
-   * @param {*} resolve 
-   * @param {*} reject 
+   *
+   * @param {*} success
+   * @param {*} returnPromise
+   * @param {*} callback
+   * @param {*} resolve
+   * @param {*} reject
    */
   promiseCallbackSafely(success, returnPromise, callback, resolve, reject) {
     try {
       let ret = success ? callback(this.value) : callback(this.reason);
-      console.log(`ret is ${ret}, ${success}`);
+      // 注意：then中返回有两种类型，一种是promise，一种是非promise
       this.resolvePromise(returnPromise, ret, resolve, reject);
     } catch (e) {
       console.log(`error is ${e}, ${success}`);
