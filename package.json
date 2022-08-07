@@ -8,5 +8,8 @@
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.23.2"
+  },
+  "dependencies": {
+    "ts-node": "^10.9.1"
   }
 }

@@ -107,3 +107,95 @@ https://developer.mozilla.org/zh-CN/docs/Web/API/Document/getElementById
 
 https://developer.mozilla.org/zh-CN/docs/Web/API/Document/querySelector
 https://developer.mozilla.org/zh-CN/docs/Web/API/Element/querySelector
+
+
+
+
+
+# Javascript高阶函数再理解
+## 普通函数
+```typescript
+console.log("===========================普通函数，注意调用时传递实参！！！==========================")
+/**
+ * 普通函数，注意调用时传递实参！！！
+ * 
+ * @param firstParam 
+ * @param secondParam 
+ * @returns 
+ */
+function simpleFunction(firstParam: string, secondParam: string): string {
+  let ret = `simpleFunction called with ${firstParam} and ${secondParam}`;
+  console.log(ret);
+  return ret;
+}
+
+simpleFunction("first", "second")
+```
+
+### 一阶高阶函数
+```typescript
+console.log("=======================一阶高阶函数，同样调用时传递实参，此时在一阶高阶函数中调用，也就是一阶高阶函数中需要传递具体的函数类型实例！！！==============================")
+/**
+ * 一阶高阶函数，同样调用时传递实参，此时在一阶高阶函数中调用，也就是一阶高阶函数中需要传递具体的函数类型实例！！！
+ * 
+ * @param firstFunction 
+ * @param secondFunction 
+ */
+function higherFunction(firstFunction: (firstParam: string) => string, secondFunction: (secondParam: string) => string) {
+    console.log(firstFunction("higherFunction"))
+    console.log(secondFunction("higherFunction"))
+}
+
+let firstFunction = function(name: string) {
+    return `first-param function called with ${name}`
+}
+
+let secondFunction = (name: string) => `sedoncd-param function called with ${name}`
+
+higherFunction(firstFunction, secondFunction)
+```
+
+### 二阶高阶函数
+```typescript
+console.log("=======================二阶高阶函数，同样调用传递时传递实参，但是会有两处调用：- 二阶高阶函数中，会调用一阶函数，所以需要给一阶函数传递函数实例！！！- 二阶高阶函数被调用的地方，需要传递给二阶高阶函数传递一阶函数实例！！！==============================")
+/**
+ * 二阶高阶函数，同样调用传递时传递实参，但是会有两处调用：
+ *     - 二阶高阶函数中，会调用一阶函数，所以需要给一阶函数传递函数实例！！！
+ *     - 二阶高阶函数被调用的地方，需要传递给二阶高阶函数传递一阶函数实例！！！
+ * 
+ * @param seniorFunction 
+ * @returns 
+ */
+function seniorHigherFunction(seniorFunction: (firstFunction: (firstParam: string) => string, secondFunction: (secondParam: string) => string) => string) {
+
+    let firstrFunction = (firstParam: string) => `firstrFunction called with ${firstParam}`
+    let secondFunction = (secondParam: string) => `secondFunction called with ${secondParam}`
+
+    // 注意内部调用了一阶函数，需要给其传递普通函数实例
+    return seniorFunction(firstrFunction, secondFunction)
+}
+
+/**
+ * 注意调用了二阶函数，需要给其传递一阶函数实例
+ */
+seniorHigherFunction((firstFunction, secondFunction) => {
+    let firstFunctionRet = firstFunction(`outer called seniorHigherFunction`)
+    console.log(firstFunctionRet)
+    let secondFunctionRet = secondFunction(`outer called seniorHigherFunction`)
+    console.log(secondFunctionRet)
+    return `outer called finished`
+})
+```
+
+### 调用总结
+**总体来说：函数调用，只负责调用时要传递参数那一层的形参传递实参。关键要区分定义内容和调用位置差异。每一次调用都只负责一层的解析，定义位置只描述类型，而调用位置只描述类型实例**
+
+- 普通函数调用时，只需要传递非函数实参即可
+- 一阶高阶函数调用时，只需要传递普通函数实例即可；一阶高阶函数内部定义会使用传递过来的普通函数；而普通函数使用时，只需要传递非函数实参即可
+- 二阶高阶函数调用时，只需要传递一阶高阶函数即可；二阶高阶函数内部定义会使用传递过来的一阶高阶函数；使用一阶高阶函数时，又需要传递普通函数实参，当然这个应该是在二阶函数定义内部确定；最后普通函数使用时，只需要传递非函数实参即可
+
+
+按照调用位置和定义位置分析有：
+- 普通函数定义时，直接使用形参；普通函数调用时，会传递形参过来
+- 一阶高阶函数定义时，直接使用形参，也就是普通函数的类型，不关注函数具体实现；一阶高阶函数调用时，会传递实参，也就是普通函数实例，需要关注普通函数实现
+- 二阶高阶函数定义时，直接使用形参，也就是一阶高阶函数的类型，不关注一阶高阶函数具体实现，只需要关注一阶高阶函数调用；二阶高阶函数调用时，需要传递实参，也就是一阶高阶函数实例，需要关注一阶函数实现；由于二阶高阶函数内部会调用一阶高阶函数，所以这里的调用需要明确给一阶函数指定具体的实参，也就是普通函数实现；另外二阶高阶函数调用时，不需要考虑一阶函数使用的普通函数形参的实现，只需要关注一阶函数使用的普通函数类型
