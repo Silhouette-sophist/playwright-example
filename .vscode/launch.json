@@ -6,6 +6,12 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Chrome",
+            "request": "launch",
+            "type": "node",
+            "program": "D:\\SourceCode\\frontend\\src\\api\\commitment.js"
+        },
+        {
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
